@@ -15,6 +15,8 @@
 #include <ew/cameraController.h>
 #include <ew/texture.h>
 
+#include <peterlib/framebuffer.h>
+
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
 GLFWwindow* initWindow(const char* title, int width, int height);
 void drawUI(ew::Camera* camera, ew::CameraController* cameraController);
@@ -39,6 +41,7 @@ struct Material {
 }material;
 
 
+
 int main() {
 	GLFWwindow* window = initWindow("Assignment 0", screenWidth, screenHeight);
 	ew::Shader shader = ew::Shader("assets/lit.vert", "assets/lit.frag");
@@ -54,6 +57,9 @@ int main() {
 	camera.fov = 60.0f; //Vertical field of view, in degrees
 
 	ew::Transform monkeyTransform;
+
+	//Create framebuffer
+	peter::Framebuffer framebuffer = peter::createFramebuffer(screenWidth, screenHeight, GL_RGB16F);
 
 	//After window initialization...
 	glEnable(GL_CULL_FACE);
