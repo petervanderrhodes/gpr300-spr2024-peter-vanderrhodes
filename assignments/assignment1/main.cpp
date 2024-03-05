@@ -40,11 +40,13 @@ struct Material {
 	float Shininess = 128;
 }material;
 
-
+bool usingPostProcess = false;
 
 int main() {
-	GLFWwindow* window = initWindow("Assignment 0", screenWidth, screenHeight);
+	GLFWwindow* window = initWindow("Assignment 1", screenWidth, screenHeight);
 	ew::Shader shader = ew::Shader("assets/lit.vert", "assets/lit.frag");
+	ew::Shader postProcessShader = ew::Shader("assets/postprocess.vert", "assets/postprocess.frag");
+	ew::Shader normalShader = ew::Shader("assets/postprocess.vert", "assets/nopostprocess.frag");
 	ew::Model monkeyModel = ew::Model("assets/suzanne.obj");
 	GLuint brickTexture = ew::loadTexture("assets/brick_color.jpg");
 
@@ -65,6 +67,9 @@ int main() {
 	if (fboStatus != GL_FRAMEBUFFER_COMPLETE) {
 		printf("Framebuffer incomplete: %d", fboStatus);
 	}
+
+	unsigned int dummyVAO;
+	glCreateVertexArrays(1, &dummyVAO);
 
 
 	//After window initialization...
@@ -93,6 +98,11 @@ int main() {
 		//Clears backbuffer color & depth values
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+
+		//glBindVertexArray(dummyVAO);
+		//6 vertices for quad, 3 for triangle
+		//glDrawArrays(GL_TRIANGLES, 0, 3);
+
 		//Rotate model around Y axis
 		//monkeyTransform.rotation = glm::rotate(monkeyTransform.rotation, deltaTime, glm::vec3(0.0, 1.0, 0.0));
 
@@ -119,7 +129,24 @@ int main() {
 
 		monkeyModel.draw(); //Draws monkey model using current shader
 
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+
+		if (usingPostProcess) {
+			postProcessShader.use();
+		}
+		else {
+			normalShader.use();
+		}
 		
+		
+
+		glBindTextureUnit(0, framebuffer.colorBuffer[0]);
+
+		glBindVertexArray(dummyVAO);
+
+		glDrawArrays(GL_TRIANGLES, 0, 3);
 
 		drawUI(&camera, &cameraController);
 
@@ -145,6 +172,10 @@ void drawUI(ew::Camera* camera, ew::CameraController* cameraController) {
 		ImGui::SliderFloat("DiffuseK", &material.Kd, 0.0f, 1.0f);
 		ImGui::SliderFloat("SpecularK", &material.Ks, 0.0f, 1.0f);
 		ImGui::SliderFloat("Shininess", &material.Shininess, 2.0f, 1024.0f);
+	}
+
+	if (ImGui::Button("Toggle post process shader")) {
+		usingPostProcess = !usingPostProcess;
 	}
 
 
