@@ -43,11 +43,15 @@ struct Material {
 	float Shininess = 128;
 }material;
 
+ew::Transform planeTransform; // There's probably something about this in the mesh, but I couldn't find it
+
+
 bool usingPostProcess = false;
 
 int main() {
 	GLFWwindow* window = initWindow("Assignment 1", screenWidth, screenHeight);
 	ew::Shader shader = ew::Shader("assets/lit.vert", "assets/lit.frag");
+	ew::Shader shader2 = ew::Shader("assets/lit.vert", "assets/lit.frag"); // for the plane
 	ew::Shader postProcessShader = ew::Shader("assets/postprocess.vert", "assets/postprocess.frag");
 	ew::Shader normalShader = ew::Shader("assets/postprocess.vert", "assets/nopostprocess.frag");
 	ew::Model monkeyModel = ew::Model("assets/suzanne.obj");
@@ -55,6 +59,7 @@ int main() {
 
 	//Plane
 	ew::Mesh planeMesh = ew::Mesh(ew::createPlane(10, 10, 5));
+
 
 	ew::CameraController cameraController;
 
@@ -101,7 +106,7 @@ int main() {
 	glReadBuffer(GL_NONE);
 
 
-
+	planeTransform.position.y = -2; //Moves plane down
 
 	//After window initialization...
 	glEnable(GL_CULL_FACE);
@@ -145,7 +150,7 @@ int main() {
 
 		//or: glBindTextureUnit(0, brickTexture);
 
-
+		
 
 		shader.use();
 		//transform.modelMatrix() combines translation, rotation, and scale into a 4x4 model matrix
@@ -160,6 +165,8 @@ int main() {
 		shader.setFloat("_Material.Shininess", material.Shininess);
 
 		monkeyModel.draw(); //Draws monkey model using current shader
+
+		shader.setMat4("_Model", planeTransform.modelMatrix()); 
 
 		//Render plane
 		planeMesh.draw();
@@ -200,6 +207,10 @@ void drawUI(ew::Camera* camera, ew::CameraController* cameraController) {
 	ImGui::Text("Add Controls Here!");
 	if (ImGui::Button("Reset Camera")) {
 		resetCamera(camera, cameraController);
+	}
+
+	if (ImGui::CollapsingHeader("Plane Position")) {
+		ImGui::SliderFloat("Plane Y", &planeTransform.position.y, -5.0f, 0.0f);
 	}
 
 	if (ImGui::CollapsingHeader("Material")) {
