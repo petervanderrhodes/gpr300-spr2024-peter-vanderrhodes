@@ -17,6 +17,9 @@
 
 #include <peterlib/framebuffer.h>
 
+#include <ew/procGen.h>
+
+
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
 GLFWwindow* initWindow(const char* title, int width, int height);
 void drawUI(ew::Camera* camera, ew::CameraController* cameraController);
@@ -49,6 +52,9 @@ int main() {
 	ew::Shader normalShader = ew::Shader("assets/postprocess.vert", "assets/nopostprocess.frag");
 	ew::Model monkeyModel = ew::Model("assets/suzanne.obj");
 	GLuint brickTexture = ew::loadTexture("assets/brick_color.jpg");
+
+	//Plane
+	ew::Mesh planeMesh = ew::Mesh(ew::createPlane(10, 10, 5));
 
 	ew::CameraController cameraController;
 
@@ -140,6 +146,7 @@ int main() {
 		//or: glBindTextureUnit(0, brickTexture);
 
 
+
 		shader.use();
 		//transform.modelMatrix() combines translation, rotation, and scale into a 4x4 model matrix
 		shader.setInt("_MainTex", 0);
@@ -153,6 +160,9 @@ int main() {
 		shader.setFloat("_Material.Shininess", material.Shininess);
 
 		monkeyModel.draw(); //Draws monkey model using current shader
+
+		//Render plane
+		planeMesh.draw();
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
