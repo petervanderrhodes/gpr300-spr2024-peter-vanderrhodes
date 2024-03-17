@@ -71,6 +71,31 @@ int main() {
 	unsigned int dummyVAO;
 	glCreateVertexArrays(1, &dummyVAO);
 
+	//Create shadowmap
+	// TODO? Maybe add this to a file in peterlib
+
+	unsigned int shadowFBO, shadowMap;
+	glCreateFramebuffers(1, &shadowFBO);
+	glBindFramebuffer(GL_FRAMEBUFFER, shadowFBO);
+	glGenTextures(1, &shadowMap);
+	glBindTexture(GL_TEXTURE_2D, shadowMap);
+	//16 bit depth values, 2k resolution
+	glTexStorage2D(GL_TEXTURE_2D, 1, GL_DEPTH_COMPONENT16, 2048, 2048);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	//Pixels outside of frustum should have max distance (white)
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	float borderColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
+	//Tell shadow map to not render color
+	glDrawBuffer(GL_NONE);
+	glReadBuffer(GL_NONE);
+
+
+
 
 	//After window initialization...
 	glEnable(GL_CULL_FACE);
