@@ -23,6 +23,7 @@
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
 GLFWwindow* initWindow(const char* title, int width, int height);
 void drawUI(ew::Camera* camera, ew::CameraController* cameraController);
+void drawShadowUI();
 
 //Global state
 int screenWidth = 1080;
@@ -44,7 +45,7 @@ struct Material {
 }material;
 
 ew::Transform planeTransform; // There's probably something about this in the mesh, but I couldn't find it
-
+unsigned int shadowMap;
 
 bool usingPostProcess = false;
 
@@ -85,7 +86,7 @@ int main() {
 	//Create shadowmap
 	// TODO? Maybe add this to a file in peterlib
 
-	unsigned int shadowFBO, shadowMap;
+	unsigned int shadowFBO;
 	glCreateFramebuffers(1, &shadowFBO);
 	glBindFramebuffer(GL_FRAMEBUFFER, shadowFBO);
 	glGenTextures(1, &shadowMap);
@@ -104,6 +105,8 @@ int main() {
 	//Tell shadow map to not render color
 	glDrawBuffer(GL_NONE);
 	glReadBuffer(GL_NONE);
+
+
 
 
 	planeTransform.position.y = -2; //Moves plane down
@@ -128,6 +131,13 @@ int main() {
 		glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.fbo);
 
 		glViewport(0, 0, framebuffer.width, framebuffer.height);
+
+		glBindFramebuffer(GL_FRAMEBUFFER, shadowMap);
+		glViewport(0, 0, framebuffer.width, framebuffer.height);
+		glClear(GL_DEPTH_BUFFER_BIT);
+		//glm::mat4 lightViewProjection = ? ? ? //Based on light type, direction
+		//Render scene from light’s point of view
+		//drawScene(depthOnlyShader, lightViewProjection);
 
 
 		//In render loop...
@@ -191,6 +201,7 @@ int main() {
 		glDrawArrays(GL_TRIANGLES, 0, 3);
 
 		drawUI(&camera, &cameraController);
+		drawShadowUI();
 
 
 		glfwSwapBuffers(window);
@@ -229,6 +240,28 @@ void drawUI(ew::Camera* camera, ew::CameraController* cameraController) {
 
 	ImGui::End();
 
+	
+
+
+	ImGui::Render();
+	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+}
+
+void drawShadowUI()
+{
+	ImGui_ImplGlfw_NewFrame();
+	ImGui_ImplOpenGL3_NewFrame();
+	ImGui::NewFrame();
+	ImGui::Begin("Shadow Map");
+	//Using a Child allow to fill all the space of the window.
+	ImGui::BeginChild("Shadow Map");
+	//Stretch image to be window size
+	ImVec2 windowSize = ImGui::GetWindowSize();
+	//Invert 0-1 V to flip vertically for ImGui display
+	//shadowMap is the texture2D handle
+	ImGui::Image((ImTextureID)shadowMap, windowSize, ImVec2(0, 1), ImVec2(1, 0));
+	ImGui::EndChild();
+	ImGui::End();
 	ImGui::Render();
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
