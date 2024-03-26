@@ -49,6 +49,9 @@ unsigned int shadowMap;
 
 bool usingPostProcess = false;
 
+glm::vec3 lightDirection = glm::vec3(0, -1, 0);
+float cameraDistance = 6;
+
 int main() {
 	GLFWwindow* window = initWindow("Assignment 1", screenWidth, screenHeight);
 	ew::Shader shader = ew::Shader("assets/lit.vert", "assets/lit.frag");
@@ -69,6 +72,13 @@ int main() {
 	camera.target = glm::vec3(0.0f, 0.0f, 0.0f); //Look at the center of the scene
 	camera.aspectRatio = (float)screenWidth / screenHeight;
 	camera.fov = 60.0f; //Vertical field of view, in degrees
+
+	ew::Camera lightCamera;
+	lightCamera.target = glm::vec3(0, 0, 0);
+	lightCamera.position = lightCamera.target - (lightDirection * cameraDistance);
+	lightCamera.orthographic = true;
+	lightCamera.orthoHeight = 6.0f;
+	lightCamera.aspectRatio = 1;
 
 	ew::Transform monkeyTransform;
 
@@ -105,6 +115,7 @@ int main() {
 	//Tell shadow map to not render color
 	glDrawBuffer(GL_NONE);
 	glReadBuffer(GL_NONE);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadowMap, 0);
 
 
 
@@ -125,24 +136,22 @@ int main() {
 		prevFrameTime = time;
 
 		//RENDER
-		glClearColor(0.6f,0.8f,0.92f,1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		
 
-		glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.fbo);
-
-		glViewport(0, 0, framebuffer.width, framebuffer.height);
-
-		glBindFramebuffer(GL_FRAMEBUFFER, shadowMap);
+		glBindFramebuffer(GL_FRAMEBUFFER, shadowFBO);
 		glViewport(0, 0, framebuffer.width, framebuffer.height);
 		glClear(GL_DEPTH_BUFFER_BIT);
-		//glm::mat4 lightViewProjection = ? ? ? //Based on light type, direction
+		glm::mat4 lightViewProjection = (lightCamera.projectionMatrix() * lightCamera.viewMatrix());
 		//Render scene from light’s point of view
+		// 
 		//drawScene(depthOnlyShader, lightViewProjection);
+
+		//TODO: draw monkey to depth shader here
 
 
 		//In render loop...
 		//Clears backbuffer color & depth values
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		
 
 
 		//glBindVertexArray(dummyVAO);
@@ -160,7 +169,16 @@ int main() {
 
 		//or: glBindTextureUnit(0, brickTexture);
 
+		glClearColor(0.6f, 0.8f, 0.92f, 1.0f);
 		
+
+		glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.fbo);
+
+		glViewport(0, 0, framebuffer.width, framebuffer.height);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		
+
 
 		shader.use();
 		//transform.modelMatrix() combines translation, rotation, and scale into a 4x4 model matrix
@@ -201,7 +219,7 @@ int main() {
 		glDrawArrays(GL_TRIANGLES, 0, 3);
 
 		drawUI(&camera, &cameraController);
-		drawShadowUI();
+		
 
 
 		glfwSwapBuffers(window);
@@ -235,6 +253,7 @@ void drawUI(ew::Camera* camera, ew::CameraController* cameraController) {
 		usingPostProcess = !usingPostProcess;
 	}
 
+	drawShadowUI();
 
 	//Add more camera settings here!
 
@@ -249,9 +268,7 @@ void drawUI(ew::Camera* camera, ew::CameraController* cameraController) {
 
 void drawShadowUI()
 {
-	ImGui_ImplGlfw_NewFrame();
-	ImGui_ImplOpenGL3_NewFrame();
-	ImGui::NewFrame();
+	
 	ImGui::Begin("Shadow Map");
 	//Using a Child allow to fill all the space of the window.
 	ImGui::BeginChild("Shadow Map");
@@ -262,8 +279,7 @@ void drawShadowUI()
 	ImGui::Image((ImTextureID)shadowMap, windowSize, ImVec2(0, 1), ImVec2(1, 0));
 	ImGui::EndChild();
 	ImGui::End();
-	ImGui::Render();
-	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+	
 }
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height)
