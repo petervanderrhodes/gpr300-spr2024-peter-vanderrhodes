@@ -58,6 +58,7 @@ int main() {
 	ew::Shader shader2 = ew::Shader("assets/lit.vert", "assets/lit.frag"); // for the plane
 	ew::Shader postProcessShader = ew::Shader("assets/postprocess.vert", "assets/postprocess.frag");
 	ew::Shader normalShader = ew::Shader("assets/postprocess.vert", "assets/nopostprocess.frag");
+	ew::Shader depthShader = ew::Shader("assets/depthOnly.vert", "assets/depthOnly.frag");
 	ew::Model monkeyModel = ew::Model("assets/suzanne.obj");
 	GLuint brickTexture = ew::loadTexture("assets/brick_color.jpg");
 
@@ -139,14 +140,38 @@ int main() {
 		
 
 		glBindFramebuffer(GL_FRAMEBUFFER, shadowFBO);
-		glViewport(0, 0, framebuffer.width, framebuffer.height);
+		glViewport(0, 0, 2048, 2048);
 		glClear(GL_DEPTH_BUFFER_BIT);
+		lightDirection = glm::normalize(lightDirection);
+		lightCamera.position = lightCamera.target - (lightDirection * cameraDistance);
 		glm::mat4 lightViewProjection = (lightCamera.projectionMatrix() * lightCamera.viewMatrix());
 		//Render scene from light’s point of view
 		// 
 		//drawScene(depthOnlyShader, lightViewProjection);
 
 		//TODO: draw monkey to depth shader here
+		depthShader.use();
+
+		
+
+		//depthShader.setInt("_MainTex", 0);
+		//depthShader.setVec3("_EyePos", lightCamera.position);
+		depthShader.setMat4("_Model", monkeyTransform.modelMatrix());
+		depthShader.setMat4("_ViewProjection", lightViewProjection);
+		monkeyModel.draw();
+
+		//depthShader.setMat4("_Model", planeTransform.modelMatrix());
+
+		//Render plane
+		//planeMesh.draw();
+
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, shadowMap);
+
+		
+
 
 
 		//In render loop...
@@ -186,6 +211,8 @@ int main() {
 		shader.setVec3("_EyePos", camera.position);
 		shader.setMat4("_Model", monkeyTransform.modelMatrix());
 		shader.setMat4("_ViewProjection", camera.projectionMatrix() * camera.viewMatrix());
+		shader.setMat4("_LightViewProj", lightViewProjection);
+		shader.setInt("_ShadowMap", 1);
 
 		shader.setFloat("_Material.Ka", material.Ka);
 		shader.setFloat("_Material.Kd", material.Kd);
@@ -213,6 +240,7 @@ int main() {
 		
 
 		glBindTextureUnit(0, framebuffer.colorBuffer[0]);
+		
 
 		glBindVertexArray(dummyVAO);
 
@@ -247,6 +275,12 @@ void drawUI(ew::Camera* camera, ew::CameraController* cameraController) {
 		ImGui::SliderFloat("DiffuseK", &material.Kd, 0.0f, 1.0f);
 		ImGui::SliderFloat("SpecularK", &material.Ks, 0.0f, 1.0f);
 		ImGui::SliderFloat("Shininess", &material.Shininess, 2.0f, 1024.0f);
+	}
+
+	if (ImGui::CollapsingHeader("Light Direction")) {
+		ImGui::SliderFloat("Light X,", &lightDirection.x, -1.0f, 1.0f);
+		ImGui::SliderFloat("Light Y,", &lightDirection.y, -1.0f, 1.0f);
+		ImGui::SliderFloat("Light Z,", &lightDirection.z, -1.0f, 1.0f);
 	}
 
 	if (ImGui::Button("Toggle post process shader")) {
