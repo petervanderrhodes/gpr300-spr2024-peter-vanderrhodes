@@ -51,6 +51,10 @@ bool usingPostProcess = false;
 
 glm::vec3 lightDirection = glm::vec3(0, -1, 0);
 float cameraDistance = 6;
+float angleTest;
+
+float minBias = 0.005;
+float maxBias = 0.015;
 
 int main() {
 	GLFWwindow* window = initWindow("Assignment 1", screenWidth, screenHeight);
@@ -214,6 +218,9 @@ int main() {
 		shader.setMat4("_LightViewProj", lightViewProjection);
 		shader.setInt("_ShadowMap", 1);
 
+		shader.setFloat("_MinBias", minBias);
+		shader.setFloat("_MaxBias", maxBias);
+
 		shader.setFloat("_Material.Ka", material.Ka);
 		shader.setFloat("_Material.Kd", material.Kd);
 		shader.setFloat("_Material.Ks", material.Ks);
@@ -281,6 +288,12 @@ void drawUI(ew::Camera* camera, ew::CameraController* cameraController) {
 		ImGui::SliderFloat("Light X,", &lightDirection.x, -1.0f, 1.0f);
 		ImGui::SliderFloat("Light Y,", &lightDirection.y, -1.0f, 1.0f);
 		ImGui::SliderFloat("Light Z,", &lightDirection.z, -1.0f, 1.0f);
+		ImGui::SliderAngle("Angle Test", &angleTest, 0.0f, 360.0f); //Was trying to convert the light into angles, but this seems fruitless.
+	}
+
+	if (ImGui::CollapsingHeader("Shadow Biases")) {
+		ImGui::SliderFloat("Min Bias", &minBias, 0.0f, maxBias);
+		ImGui::SliderFloat("Max Bias", &maxBias, minBias, 0.1f);
 	}
 
 	if (ImGui::Button("Toggle post process shader")) {

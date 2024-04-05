@@ -14,6 +14,8 @@ uniform vec3 _EyePos;
 uniform vec3 _LightDirection = vec3(0.0,-1.0,0.0);
 uniform vec3 _LightColor = vec3(1.0);
 uniform vec3 _AmbientColor = vec3(0.3,0.4,0.46);
+uniform float _MinBias;
+uniform float _MaxBias;
 
 struct Material{
 	float Ka; //Ambient coefficient (0-1)
@@ -27,8 +29,8 @@ float calcShadow(sampler2D shadowMap, vec4 lightSpacePos) {
 	vec3 sampleCoord = lightSpacePos.xyz / lightSpacePos.w;
 
 	sampleCoord = sampleCoord * 0.5 + 0.5;
-	float bias = 0.005;
-	//TODO: min and max biases, add to imGui
+	float bias = max(_MaxBias * (1.0 - dot((normalize(fs_in.WorldNormal)), (-_LightDirection))), _MinBias);
+	
 	float myDepth = sampleCoord.z - bias;
 
 	//float shadowMapDepth = texture(shadowMap, sampleCoord.xy).r;
