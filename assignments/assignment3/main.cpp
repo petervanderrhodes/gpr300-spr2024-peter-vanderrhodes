@@ -46,6 +46,15 @@ struct Material {
 	float Shininess = 128;
 }material;
 
+struct PointLight {
+	glm::vec3 position;
+	float radius;
+	glm::vec4 color;
+};
+const int MAX_POINT_LIGHTS = 64;
+PointLight pointLights[MAX_POINT_LIGHTS];
+
+
 ew::Transform planeTransform; // There's probably something about this in the mesh, but I couldn't find it
 unsigned int shadowMap;
 
@@ -62,10 +71,11 @@ int main() {
 	GLFWwindow* window = initWindow("Assignment 3", screenWidth, screenHeight);
 	ew::Shader shader = ew::Shader("assets/lit.vert", "assets/lit.frag");
 	ew::Shader shader2 = ew::Shader("assets/lit.vert", "assets/lit.frag"); // for the plane
-	ew::Shader postProcessShader = ew::Shader("assets/postprocess.vert", "assets/postprocess.frag");
-	ew::Shader normalShader = ew::Shader("assets/postprocess.vert", "assets/nopostprocess.frag");
+	ew::Shader postProcessShader = ew::Shader("assets/fsTriangle.vert", "assets/postprocess.frag");
+	ew::Shader normalShader = ew::Shader("assets/fsTriangle.vert", "assets/nopostprocess.frag");
 	ew::Shader depthShader = ew::Shader("assets/depthOnly.vert", "assets/depthOnly.frag");
 	ew::Shader gBufferShader = ew::Shader("assets/lit.vert", "assets/geometryPass.frag");
+	ew::Shader deferredShader = ew::Shader("assets/fsTriangle.vert", "assets/deferredLit.frag");
 	
 	GLuint brickTexture = ew::loadTexture("assets/brick_color.jpg");
 
