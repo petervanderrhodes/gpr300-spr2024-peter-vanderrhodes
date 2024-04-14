@@ -22,8 +22,10 @@
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
 GLFWwindow* initWindow(const char* title, int width, int height);
-void drawUI(ew::Camera* camera, ew::CameraController* cameraController);
+void drawUI(ew::Camera* camera, ew::CameraController* cameraController, peter::Framebuffer gBuffer);
 void drawShadowUI();
+void drawGBufferUI(peter::Framebuffer gBuffer);
+void drawScene(ew::Camera camera, ew::Shader shader, ew::Camera lightCamera, bool shouldDrawPlane = true);
 
 //Global state
 int screenWidth = 1080;
@@ -50,24 +52,25 @@ unsigned int shadowMap;
 bool usingPostProcess = false;
 
 glm::vec3 lightDirection = glm::vec3(0, -1, 0);
-float cameraDistance = 6;
+float cameraDistance = 20;
 float angleTest;
 
 float minBias = 0.005;
 float maxBias = 0.015;
 
 int main() {
-	GLFWwindow* window = initWindow("Assignment 2", screenWidth, screenHeight);
+	GLFWwindow* window = initWindow("Assignment 3", screenWidth, screenHeight);
 	ew::Shader shader = ew::Shader("assets/lit.vert", "assets/lit.frag");
 	ew::Shader shader2 = ew::Shader("assets/lit.vert", "assets/lit.frag"); // for the plane
 	ew::Shader postProcessShader = ew::Shader("assets/postprocess.vert", "assets/postprocess.frag");
 	ew::Shader normalShader = ew::Shader("assets/postprocess.vert", "assets/nopostprocess.frag");
 	ew::Shader depthShader = ew::Shader("assets/depthOnly.vert", "assets/depthOnly.frag");
-	ew::Model monkeyModel = ew::Model("assets/suzanne.obj");
+	ew::Shader gBufferShader = ew::Shader("assets/lit.vert", "assets/geometryPass.frag");
+	
 	GLuint brickTexture = ew::loadTexture("assets/brick_color.jpg");
 
 	//Plane
-	ew::Mesh planeMesh = ew::Mesh(ew::createPlane(10, 10, 5));
+	
 
 
 	ew::CameraController cameraController;
@@ -82,13 +85,17 @@ int main() {
 	lightCamera.target = glm::vec3(0, 0, 0);
 	lightCamera.position = lightCamera.target - (lightDirection * cameraDistance);
 	lightCamera.orthographic = true;
-	lightCamera.orthoHeight = 6.0f;
+	lightCamera.orthoHeight = 70.0f;
 	lightCamera.aspectRatio = 1;
 
-	ew::Transform monkeyTransform;
+	
 
 	//Create framebuffer
 	peter::Framebuffer framebuffer = peter::createFramebuffer(screenWidth, screenHeight, GL_RGB16F);
+
+	//Create G-buffer
+	peter::Framebuffer gBuffer = peter::createGBuffer(screenWidth, screenHeight);
+	
 
 	GLenum fboStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 	if (fboStatus != GL_FRAMEBUFFER_COMPLETE) {
@@ -146,28 +153,11 @@ int main() {
 		glBindFramebuffer(GL_FRAMEBUFFER, shadowFBO);
 		glViewport(0, 0, 2048, 2048);
 		glClear(GL_DEPTH_BUFFER_BIT);
-		lightDirection = glm::normalize(lightDirection);
-		lightCamera.position = lightCamera.target - (lightDirection * cameraDistance);
-		glm::mat4 lightViewProjection = (lightCamera.projectionMatrix() * lightCamera.viewMatrix());
+		
 		//Render scene from light’s point of view
-		// 
-		//drawScene(depthOnlyShader, lightViewProjection);
-
-		//TODO: draw monkey to depth shader here
-		depthShader.use();
-
 		
 
-		//depthShader.setInt("_MainTex", 0);
-		//depthShader.setVec3("_EyePos", lightCamera.position);
-		depthShader.setMat4("_Model", monkeyTransform.modelMatrix());
-		depthShader.setMat4("_ViewProjection", lightViewProjection);
-		monkeyModel.draw();
-
-		//depthShader.setMat4("_Model", planeTransform.modelMatrix());
-
-		//Render plane
-		//planeMesh.draw();
+		drawScene(lightCamera, depthShader, lightCamera, false);
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -176,6 +166,12 @@ int main() {
 
 		
 
+		glBindFramebuffer(GL_FRAMEBUFFER, gBuffer.fbo);
+		glViewport(0, 0, gBuffer.width, gBuffer.height);
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		drawScene(camera, gBufferShader, lightCamera);
 
 
 		//In render loop...
@@ -209,29 +205,7 @@ int main() {
 		
 
 
-		shader.use();
-		//transform.modelMatrix() combines translation, rotation, and scale into a 4x4 model matrix
-		shader.setInt("_MainTex", 0);
-		shader.setVec3("_EyePos", camera.position);
-		shader.setMat4("_Model", monkeyTransform.modelMatrix());
-		shader.setMat4("_ViewProjection", camera.projectionMatrix() * camera.viewMatrix());
-		shader.setMat4("_LightViewProj", lightViewProjection);
-		shader.setInt("_ShadowMap", 1);
-
-		shader.setFloat("_MinBias", minBias);
-		shader.setFloat("_MaxBias", maxBias);
-
-		shader.setFloat("_Material.Ka", material.Ka);
-		shader.setFloat("_Material.Kd", material.Kd);
-		shader.setFloat("_Material.Ks", material.Ks);
-		shader.setFloat("_Material.Shininess", material.Shininess);
-
-		monkeyModel.draw(); //Draws monkey model using current shader
-
-		shader.setMat4("_Model", planeTransform.modelMatrix()); 
-
-		//Render plane
-		planeMesh.draw();
+		drawScene(camera, shader, lightCamera);
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -253,7 +227,7 @@ int main() {
 
 		glDrawArrays(GL_TRIANGLES, 0, 3);
 
-		drawUI(&camera, &cameraController);
+		drawUI(&camera, &cameraController, gBuffer);
 		
 
 
@@ -262,7 +236,7 @@ int main() {
 	printf("Shutting down...");
 }
 
-void drawUI(ew::Camera* camera, ew::CameraController* cameraController) {
+void drawUI(ew::Camera* camera, ew::CameraController* cameraController, peter::Framebuffer gBuffer) {
 	ImGui_ImplGlfw_NewFrame();
 	ImGui_ImplOpenGL3_NewFrame();
 	ImGui::NewFrame();
@@ -302,6 +276,8 @@ void drawUI(ew::Camera* camera, ew::CameraController* cameraController) {
 
 	drawShadowUI();
 
+	drawGBufferUI(gBuffer);
+
 	//Add more camera settings here!
 
 	ImGui::End();
@@ -327,6 +303,18 @@ void drawShadowUI()
 	ImGui::EndChild();
 	ImGui::End();
 	
+}
+
+void drawGBufferUI(peter::Framebuffer gBuffer)
+{
+	ImGui::Begin("GBuffers");
+		ImVec2 texSize = ImVec2(gBuffer.width / 4, gBuffer.height / 4);
+		for (size_t i = 0; i < 3; i++)
+		{
+			ImGui::Image((ImTextureID)gBuffer.colorBuffers[i], texSize, ImVec2(0, 1), ImVec2(1, 0));
+		}
+		ImGui::End();
+
 }
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height)
@@ -369,5 +357,61 @@ GLFWwindow* initWindow(const char* title, int width, int height) {
 	ImGui_ImplOpenGL3_Init();
 
 	return window;
+}
+
+void drawScene(ew::Camera camera, ew::Shader shader, ew::Camera lightCamera, bool shouldDrawPlane)
+{
+	ew::Model monkeyModel = ew::Model("assets/suzanne.obj");
+
+	ew::Transform monkeyTransform;
+
+	lightDirection = glm::normalize(lightDirection);
+	lightCamera.position = lightCamera.target - (lightDirection * cameraDistance);
+	glm::mat4 lightViewProjection = (lightCamera.projectionMatrix() * lightCamera.viewMatrix());
+
+	ew::Mesh planeMesh = ew::Mesh(ew::createPlane(70, 70, 5));
+
+	shader.use();
+	//transform.modelMatrix() combines translation, rotation, and scale into a 4x4 model matrix
+	shader.setInt("_MainTex", 0);
+	shader.setVec3("_EyePos", camera.position);
+	
+	shader.setMat4("_ViewProjection", camera.projectionMatrix() * camera.viewMatrix());
+	shader.setMat4("_LightViewProj", lightViewProjection);
+	shader.setInt("_ShadowMap", 1);
+
+	shader.setFloat("_MinBias", minBias);
+	shader.setFloat("_MaxBias", maxBias);
+
+	shader.setFloat("_Material.Ka", material.Ka);
+	shader.setFloat("_Material.Kd", material.Kd);
+	shader.setFloat("_Material.Ks", material.Ks);
+	shader.setFloat("_Material.Shininess", material.Shininess);
+
+	ew::Transform currentTransform;
+	//The monkey array
+	
+	for (int z = -3; z < 4; z++) {
+		for (int x = -3; x < 4; x++) {
+			currentTransform.position.x = 10 * x;
+			currentTransform.position.z = 10 * z;
+			currentTransform.position += monkeyTransform.position;
+			shader.setMat4("_Model", currentTransform.modelMatrix());
+			monkeyModel.draw(); //Draws monkey model using current shader
+		}
+	}
+
+	
+	
+
+	
+
+	if (shouldDrawPlane)
+	{
+		shader.setMat4("_Model", planeTransform.modelMatrix());
+		//Render plane
+		planeMesh.draw();
+	}
+	
 }
 
