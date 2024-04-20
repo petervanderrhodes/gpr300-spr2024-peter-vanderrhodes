@@ -9,6 +9,6 @@ namespace peter {
 		unsigned int width;
 		unsigned int height;
 	};
-	Framebuffer createFramebuffer(unsigned int width, unsigned int height, int colorFormat);
+	Framebuffer createFramebuffer(unsigned int width, unsigned int height, int colorFormat); 
 	Framebuffer createGBuffer(unsigned int width, unsigned height);
 }

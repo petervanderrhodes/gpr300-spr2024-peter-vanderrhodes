@@ -69,8 +69,8 @@ float maxBias = 0.015;
 
 int main() {
 	GLFWwindow* window = initWindow("Assignment 3", screenWidth, screenHeight);
-	ew::Shader shader = ew::Shader("assets/fsTriangle.vert", "assets/deferredLit.frag");
-	ew::Shader shader2 = ew::Shader("assets/fsTriangle.vert", "assets/deferredLit.frag"); // for the plane
+	//ew::Shader shader = ew::Shader("assets/fsTriangle.vert", "assets/deferredLit.frag");
+	//ew::Shader shader2 = ew::Shader("assets/fsTriangle.vert", "assets/deferredLit.frag"); // for the plane
 	ew::Shader postProcessShader = ew::Shader("assets/fsTriangle.vert", "assets/postprocess.frag");
 	ew::Shader normalShader = ew::Shader("assets/fsTriangle.vert", "assets/nopostprocess.frag");
 	ew::Shader depthShader = ew::Shader("assets/depthOnly.vert", "assets/depthOnly.frag");
@@ -117,7 +117,7 @@ int main() {
 
 	//Create shadowmap
 	// TODO? Maybe add this to a file in peterlib
-
+	
 	unsigned int shadowFBO;
 	glCreateFramebuffers(1, &shadowFBO);
 	glBindFramebuffer(GL_FRAMEBUFFER, shadowFBO);
@@ -158,84 +158,116 @@ int main() {
 		prevFrameTime = time;
 
 		//RENDER
-		
 
-		glBindFramebuffer(GL_FRAMEBUFFER, shadowFBO);
-		glViewport(0, 0, 2048, 2048);
-		glClear(GL_DEPTH_BUFFER_BIT);
-		
-		//Render scene from light’s point of view
-		
-
-		drawScene(lightCamera, depthShader, lightCamera, false);
-
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, shadowMap);
+		//UPDATE
 
 		cameraController.move(window, &camera, deltaTime);
 
+		//SHADOW PASS 
+		{
+			glBindFramebuffer(GL_FRAMEBUFFER, shadowFBO);
+			glViewport(0, 0, 2048, 2048);
+			glClear(GL_DEPTH_BUFFER_BIT);
+
+			//Render scene from light’s point of view
+
+			depthShader.setFloat("_MinBias", minBias);
+			depthShader.setFloat("_MaxBias", maxBias);
+			drawScene(lightCamera, depthShader, lightCamera, false);
+
+			glActiveTexture(GL_TEXTURE3);
+			glBindTexture(GL_TEXTURE_2D, shadowMap);
+		}
+
+
+
+
+
+
 		//Bind brick texture to texture unit 0 
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, brickTexture);
+		//GEOMETRY PASS 
+		{
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, brickTexture);
 
-		glBindFramebuffer(GL_FRAMEBUFFER, gBuffer.fbo);
-		glViewport(0, 0, gBuffer.width, gBuffer.height);
-		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			glBindFramebuffer(GL_FRAMEBUFFER, gBuffer.fbo);
+			glViewport(0, 0, gBuffer.width, gBuffer.height);
+			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		drawScene(camera, gBufferShader, lightCamera);
-
-
-		//In render loop...
-		//Clears backbuffer color & depth values
-		
+			drawScene(camera, gBufferShader, lightCamera);
+		}
 
 
-		//glBindVertexArray(dummyVAO);
-		//6 vertices for quad, 3 for triangle
-		//glDrawArrays(GL_TRIANGLES, 0, 3);
+		//LIGHTING PASS
+		{
+			glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.fbo);
+			
+			glViewport(0, 0, framebuffer.width, framebuffer.height);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		//Rotate model around Y axis
-		//monkeyTransform.rotation = glm::rotate(monkeyTransform.rotation, deltaTime, glm::vec3(0.0, 1.0, 0.0));
+			deferredShader.use();
+			//TODO: SET ALL LIGHTING UNIFORMS
+			deferredShader.setFloat("_MinBias", minBias);
+			deferredShader.setFloat("_MaxBias", maxBias);
 
-		
+			deferredShader.setFloat("_Material.Ka", material.Ka);
+			deferredShader.setFloat("_Material.Kd", material.Kd);
+			deferredShader.setFloat("_Material.Ks", material.Ks);
+			deferredShader.setFloat("_Material.Shininess", material.Shininess);
+			deferredShader.setInt("_ShadowMap",3);
+			//TODO: BIND GBUFFER TEXTURES
+			glBindTextureUnit(0, gBuffer.colorBuffers[0]);
+			glBindTextureUnit(1, gBuffer.colorBuffers[1]);
+			glBindTextureUnit(2, gBuffer.colorBuffers[2]);
 
-		//or: glBindTextureUnit(0, brickTexture);
+			//Shadow Map binding
 
-		glClearColor(0.6f, 0.8f, 0.92f, 1.0f);
-		
+			glBindTextureUnit(3, shadowMap); 
+			// Does the same as:
+			//glActiveTexture(GL_TEXTURE3);
+			//glBindTexture(GL_TEXTURE_2D, shadowMap);
+			
+			
+			
+			glBindVertexArray(dummyVAO);
+			glDrawArrays(GL_TRIANGLES, 0, 3);
+		}
+
+
+		//glClearColor(0.6f, 0.8f, 0.92f, 1.0f);
+
 
 		glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.fbo);
 
-		glViewport(0, 0, framebuffer.width, framebuffer.height);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+		
 		
 
 
-		drawScene(camera, shader, lightCamera);
-
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
-		if (usingPostProcess) {
-			postProcessShader.use();
+		//drawScene(camera, shader, lightCamera);
+
+		//POST PROCESS PASS 
+		{
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+
+			if (usingPostProcess) {
+				postProcessShader.use();
+			}
+			else {
+				normalShader.use();
+			}
+
+
+
+			glBindTextureUnit(0, framebuffer.colorBuffers[0]);
+			glBindVertexArray(dummyVAO);
+			glDrawArrays(GL_TRIANGLES, 0, 3);
 		}
-		else {
-			normalShader.use();
-		}
 		
-		
-
-		glBindTextureUnit(0, framebuffer.colorBuffers[0]);
-		
-
-		glBindVertexArray(dummyVAO);
-
-		glDrawArrays(GL_TRIANGLES, 0, 3);
 
 		drawUI(&camera, &cameraController, gBuffer);
 		
@@ -388,15 +420,9 @@ void drawScene(ew::Camera camera, ew::Shader shader, ew::Camera lightCamera, boo
 	
 	shader.setMat4("_ViewProjection", camera.projectionMatrix() * camera.viewMatrix());
 	shader.setMat4("_LightViewProj", lightViewProjection);
-	shader.setInt("_ShadowMap", 1);
+	//shader.setInt("_ShadowMap", 1);
 
-	shader.setFloat("_MinBias", minBias);
-	shader.setFloat("_MaxBias", maxBias);
-
-	shader.setFloat("_Material.Ka", material.Ka);
-	shader.setFloat("_Material.Kd", material.Kd);
-	shader.setFloat("_Material.Ks", material.Ks);
-	shader.setFloat("_Material.Shininess", material.Shininess);
+	
 
 	ew::Transform currentTransform;
 	//The monkey array

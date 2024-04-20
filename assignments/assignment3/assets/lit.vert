@@ -5,7 +5,7 @@ layout(location = 1) in vec3 vNormal; //Vertex position in model space
 layout(location = 2) in vec2 vTexCoord; //Vertex texture coordinate (UV)
 uniform mat4 _Model; //Model->World Matrix
 uniform mat4 _ViewProjection; //Combined View->Projection Matrix
-uniform mat4 _LightViewProj; //view + projection of light source camera
+//uniform mat4 _LightViewProj; //view + projection of light source camera
 //This whole block will be passed to the next shader stage.
 out Surface{
 	vec3 WorldPos; //Vertex position in world space
@@ -13,7 +13,7 @@ out Surface{
 	vec2 TexCoord;
 }vs_out;
 
-out vec4 LightSpacePos;
+//out vec4 LightSpacePos;
 
 void main(){
 	//Transform vertex position to World Space.
@@ -22,7 +22,7 @@ void main(){
 	vs_out.WorldNormal = transpose(inverse(mat3(_Model))) * vNormal;
 	vs_out.TexCoord = vTexCoord;
 	gl_Position = _ViewProjection * _Model * vec4(vPos,1.0);
-	LightSpacePos = _LightViewProj * _Model * vec4(vPos, 1.0);
+	//LightSpacePos = _LightViewProj * _Model * vec4(vPos, 1.0);
 }
 
 
