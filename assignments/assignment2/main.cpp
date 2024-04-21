@@ -171,7 +171,7 @@ int main() {
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-		glActiveTexture(GL_TEXTURE1);
+		glActiveTexture(GL_TEXTURE3);
 		glBindTexture(GL_TEXTURE_2D, shadowMap);
 
 		
@@ -207,31 +207,34 @@ int main() {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		
+		//DRAW SCENE
+		{
+			shader.use();
+			//transform.modelMatrix() combines translation, rotation, and scale into a 4x4 model matrix
+			shader.setInt("_MainTex", 0);
+			shader.setVec3("_EyePos", camera.position);
+			shader.setMat4("_Model", monkeyTransform.modelMatrix());
+			shader.setMat4("_ViewProjection", camera.projectionMatrix() * camera.viewMatrix());
+			shader.setMat4("_LightViewProj", lightViewProjection);
+			shader.setInt("_ShadowMap", 3);
 
+			shader.setFloat("_MinBias", minBias);
+			shader.setFloat("_MaxBias", maxBias);
 
-		shader.use();
-		//transform.modelMatrix() combines translation, rotation, and scale into a 4x4 model matrix
-		shader.setInt("_MainTex", 0);
-		shader.setVec3("_EyePos", camera.position);
-		shader.setMat4("_Model", monkeyTransform.modelMatrix());
-		shader.setMat4("_ViewProjection", camera.projectionMatrix() * camera.viewMatrix());
-		shader.setMat4("_LightViewProj", lightViewProjection);
-		shader.setInt("_ShadowMap", 1);
+			shader.setFloat("_Material.Ka", material.Ka);
+			shader.setFloat("_Material.Kd", material.Kd);
+			shader.setFloat("_Material.Ks", material.Ks);
+			shader.setFloat("_Material.Shininess", material.Shininess);
 
-		shader.setFloat("_MinBias", minBias);
-		shader.setFloat("_MaxBias", maxBias);
+			monkeyModel.draw(); //Draws monkey model using current shader
 
-		shader.setFloat("_Material.Ka", material.Ka);
-		shader.setFloat("_Material.Kd", material.Kd);
-		shader.setFloat("_Material.Ks", material.Ks);
-		shader.setFloat("_Material.Shininess", material.Shininess);
+			shader.setMat4("_Model", planeTransform.modelMatrix());
 
-		monkeyModel.draw(); //Draws monkey model using current shader
+			//Render plane
+			planeMesh.draw();
+		}
 
-		shader.setMat4("_Model", planeTransform.modelMatrix()); 
-
-		//Render plane
-		planeMesh.draw();
+		
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

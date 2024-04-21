@@ -39,6 +39,7 @@ uniform layout(binding = 2) sampler2D _gAlbedo;
 
 
 
+
 struct Material{
 	float Ka; //Ambient coefficient (0-1)
 	float Kd; //Diffuse coefficient (0-1)
@@ -86,6 +87,7 @@ vec3 calcDirectionalLight(vec3 normal, vec3 worldPos) {
 	vec4 LightSpacePos = _LightViewProj * vec4(worldPos, 1.0);
 
 	float shadow = calcShadow(_ShadowMap, LightSpacePos, normal);
+	//shadow = 0.0f;
 	
 	vec3 light = (_AmbientColor * _Material.Ka) + (_Material.Kd * diffuseFactor + _Material.Ks * specularFactor) * (1.0 - shadow);
 	return light;

@@ -69,7 +69,7 @@ float maxBias = 0.015;
 
 int main() {
 	GLFWwindow* window = initWindow("Assignment 3", screenWidth, screenHeight);
-	//ew::Shader shader = ew::Shader("assets/fsTriangle.vert", "assets/deferredLit.frag");
+	ew::Shader shader = ew::Shader("assets/fsTriangle.vert", "assets/deferredLit.frag");
 	//ew::Shader shader2 = ew::Shader("assets/fsTriangle.vert", "assets/deferredLit.frag"); // for the plane
 	ew::Shader postProcessShader = ew::Shader("assets/fsTriangle.vert", "assets/postprocess.frag");
 	ew::Shader normalShader = ew::Shader("assets/fsTriangle.vert", "assets/nopostprocess.frag");
@@ -206,8 +206,18 @@ int main() {
 			glViewport(0, 0, framebuffer.width, framebuffer.height);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+			lightDirection = glm::normalize(lightDirection);
+			lightCamera.position = lightCamera.target - (lightDirection * cameraDistance);
+			glm::mat4 lightViewProjection = (lightCamera.projectionMatrix() * lightCamera.viewMatrix());
+
 			deferredShader.use();
 			//TODO: SET ALL LIGHTING UNIFORMS
+
+			deferredShader.setVec3("_EyePos", camera.position);
+
+			deferredShader.setMat4("_ViewProjection", camera.projectionMatrix()* camera.viewMatrix());
+			deferredShader.setMat4("_LightViewProj", lightViewProjection);
+
 			deferredShader.setFloat("_MinBias", minBias);
 			deferredShader.setFloat("_MaxBias", maxBias);
 
@@ -221,6 +231,8 @@ int main() {
 			glBindTextureUnit(1, gBuffer.colorBuffers[1]);
 			glBindTextureUnit(2, gBuffer.colorBuffers[2]);
 
+			
+
 			//Shadow Map binding
 
 			glBindTextureUnit(3, shadowMap); 
@@ -230,10 +242,13 @@ int main() {
 			
 			
 			
+			
 			glBindVertexArray(dummyVAO);
 			glDrawArrays(GL_TRIANGLES, 0, 3);
 		}
 
+
+		drawScene(camera, shader, lightCamera, true);
 
 		//glClearColor(0.6f, 0.8f, 0.92f, 1.0f);
 
@@ -420,7 +435,7 @@ void drawScene(ew::Camera camera, ew::Shader shader, ew::Camera lightCamera, boo
 	
 	shader.setMat4("_ViewProjection", camera.projectionMatrix() * camera.viewMatrix());
 	shader.setMat4("_LightViewProj", lightViewProjection);
-	//shader.setInt("_ShadowMap", 1);
+	//shader.setInt("_ShadowMap", 3);
 
 	
 
