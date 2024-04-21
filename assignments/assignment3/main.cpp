@@ -76,6 +76,7 @@ int main() {
 	ew::Shader depthShader = ew::Shader("assets/depthOnly.vert", "assets/depthOnly.frag");
 	ew::Shader gBufferShader = ew::Shader("assets/lit.vert", "assets/geometryPass.frag");
 	ew::Shader deferredShader = ew::Shader("assets/fsTriangle.vert", "assets/deferredLit.frag");
+	ew::Shader lightOrbShader = ew::Shader("assets/lightOrb.vert", "assets/lightOrb.frag");
 	
 	GLuint brickTexture = ew::loadTexture("assets/brick_color.jpg");
 
@@ -98,7 +99,9 @@ int main() {
 	lightCamera.orthoHeight = 70.0f;
 	lightCamera.aspectRatio = 1;
 
-	
+	//In initialization - create a low res sphere mesh
+	ew::Mesh sphereMesh = ew::Mesh(ew::createSphere(1.0f, 8));
+
 
 	//Create framebuffer
 	peter::Framebuffer framebuffer = peter::createFramebuffer(screenWidth, screenHeight, GL_RGB16F);
@@ -139,7 +142,27 @@ int main() {
 	glReadBuffer(GL_NONE);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadowMap, 0);
 
+	//Creating the point lights
+	int pointLightDistance = 10;
+	int pointLightOffset = 5;
+	float pointLightRadius = 8.0f;
 
+	for (int z = 0; z < 8; z++)
+	{
+		for (int x = 0; x < 8; x++)
+		{
+			int i = (z * 8) + x;
+			pointLights[i].position = glm::vec3((x-4) * pointLightDistance + pointLightOffset, 0, (z-4) * pointLightDistance + pointLightOffset);
+			pointLights[i].radius = pointLightRadius;
+			float pointLightR = rand() % 256;
+			float pointLightG = rand() % 256;
+			float pointLightB = rand() % 256;
+			glm::vec4 pointLightColor = glm::vec4(pointLightR, pointLightG, pointLightB, 255);
+			pointLightColor /= 256;
+			pointLights[i].color = pointLightColor;
+			
+		}
+	}
 
 
 	planeTransform.position.y = -2; //Moves plane down
@@ -226,6 +249,16 @@ int main() {
 			deferredShader.setFloat("_Material.Ks", material.Ks);
 			deferredShader.setFloat("_Material.Shininess", material.Shininess);
 			deferredShader.setInt("_ShadowMap",3);
+
+			for (int i = 0; i < MAX_POINT_LIGHTS; i++)
+			{
+				std::string prefix = "_PointLights[" + std::to_string(i) + "].";
+				deferredShader.setVec3(prefix + "position", pointLights[i].position);
+				deferredShader.setFloat(prefix + "radius", pointLights[i].radius);
+				deferredShader.setVec4(prefix + "color", pointLights[i].color);
+
+			}
+
 			//TODO: BIND GBUFFER TEXTURES
 			glBindTextureUnit(0, gBuffer.colorBuffers[0]);
 			glBindTextureUnit(1, gBuffer.colorBuffers[1]);
@@ -248,7 +281,7 @@ int main() {
 		}
 
 
-		drawScene(camera, shader, lightCamera, true);
+		//drawScene(camera, shader, lightCamera, true);
 
 		//glClearColor(0.6f, 0.8f, 0.92f, 1.0f);
 
@@ -256,7 +289,29 @@ int main() {
 		glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.fbo);
 
 		
-		
+		//RENDER LIGHT ORBS
+		{
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, gBuffer.fbo); //Read from gBuffer 
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer.fbo); //Write to current fbo
+			glBlitFramebuffer(
+				0, 0, screenWidth, screenHeight, 0, 0, screenWidth, screenHeight, GL_DEPTH_BUFFER_BIT, GL_NEAREST
+			);
+
+			//Draw all light orbs
+			lightOrbShader.use();
+			lightOrbShader.setMat4("_ViewProjection", camera.projectionMatrix()* camera.viewMatrix());
+			for (int i = 0; i < MAX_POINT_LIGHTS; i++)
+			{
+				glm::mat4 m = glm::mat4(1.0f);
+				m = glm::translate(m, pointLights[i].position);
+				m = glm::scale(m, glm::vec3(0.2f)); //Whatever radius you want
+
+				lightOrbShader.setMat4("_Model", m);
+				lightOrbShader.setVec3("_Color", pointLights[i].color);
+				sphereMesh.draw();
+			}
+
+		}
 
 
 

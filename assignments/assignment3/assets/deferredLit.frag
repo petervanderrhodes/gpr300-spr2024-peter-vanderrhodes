@@ -133,7 +133,7 @@ void main(){
 	totalLight+=calcDirectionalLight(normal,pos);
 	
 	for(int i=0;i<MAX_POINT_LIGHTS;i++) {
-		//totalLight+=calcPointLight(_PointLights[i],normal,pos);
+		totalLight+=calcPointLight(_PointLights[i],normal,pos);
 	}
 	vec3 albedo = texture(_gAlbedo,UV).rgb;
 	FragColor = vec4(albedo * totalLight,0);
