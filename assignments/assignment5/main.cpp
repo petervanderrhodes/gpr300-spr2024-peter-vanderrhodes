@@ -19,6 +19,9 @@
 
 #include <ew/procGen.h>
 
+#include "assets/node.h"
+#include <iostream>
+
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
 GLFWwindow* initWindow(const char* title, int width, int height);
@@ -54,6 +57,9 @@ struct PointLight {
 const int MAX_POINT_LIGHTS = 64;
 PointLight pointLights[MAX_POINT_LIGHTS];
 
+
+std::vector<Node*> nodes;
+ew::Transform globalTransform;
 
 ew::Transform planeTransform; // There's probably something about this in the mesh, but I couldn't find it
 unsigned int shadowMap;
@@ -169,6 +175,21 @@ int main() {
 
 
 	planeTransform.position.y = -2; //Moves plane down
+
+	
+	//Nodes
+
+
+	
+
+	
+	Node chestNode;
+	Node* chestNodePtr = &chestNode;
+	setNodeValues(*chestNodePtr, globalTransform.modelMatrix());
+	std::cout << (chestNodePtr->parent == nullptr);
+	chestNodePtr->localTransform.scale = glm::vec3(2);
+	nodes.push_back(chestNodePtr);
+
 
 	//After window initialization...
 	glEnable(GL_CULL_FACE);
@@ -481,6 +502,21 @@ GLFWwindow* initWindow(const char* title, int width, int height) {
 	return window;
 }
 
+void updateFKValues()
+{
+	globalTransform.rotation = glm::rotate(globalTransform.rotation, deltaTime, glm::vec3(0.0, 1.0, 0.0));
+
+	
+	for (auto currentNode : nodes)
+	{
+		std::cout << currentNode->localTransform.scale.x;
+		std::cout << false;
+		std::cout << (currentNode->parent != nullptr);
+		SolveFKRecursive(currentNode);
+	}
+
+}
+
 void drawScene(ew::Camera camera, ew::Shader shader, ew::Camera lightCamera, bool shouldDrawPlane)
 {
 	ew::Model monkeyModel = ew::Model("assets/suzanne.obj");
@@ -491,7 +527,7 @@ void drawScene(ew::Camera camera, ew::Shader shader, ew::Camera lightCamera, boo
 	lightCamera.position = lightCamera.target - (lightDirection * cameraDistance);
 	glm::mat4 lightViewProjection = (lightCamera.projectionMatrix() * lightCamera.viewMatrix());
 
-	ew::Mesh planeMesh = ew::Mesh(ew::createPlane(10, 10, 5));
+	ew::Mesh planeMesh = ew::Mesh(ew::createPlane(20, 20, 5));
 
 	shader.use();
 	//transform.modelMatrix() combines translation, rotation, and scale into a 4x4 model matrix
@@ -504,10 +540,13 @@ void drawScene(ew::Camera camera, ew::Shader shader, ew::Camera lightCamera, boo
 
 	
 
-	ew::Transform currentTransform;
+	
+
+
 	//The monkey array
 	
 	/*
+	ew::Transform currentTransform;
 	 for (int z = -3; z < 4; z++) {
 		for (int x = -3; x < 4; x++) {
 			currentTransform.position.x = 10 * x;
@@ -518,6 +557,16 @@ void drawScene(ew::Camera camera, ew::Shader shader, ew::Camera lightCamera, boo
 		}
 	}
 	*/
+
+	//FK drawing
+
+	updateFKValues();
+
+	for (Node* currentNode : nodes)
+	{
+		shader.setMat4("_Model", currentNode->localTransform.modelMatrix());
+		monkeyModel.draw();
+	}
 	
 
 	
