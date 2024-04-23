@@ -16,14 +16,14 @@ void SolveFKRecursive(Node* node)
 	}
 }
 
-void setNodeValues(Node newNode, glm::mat4 GlobalT, Node* parent)
+void setNodeValues(Node* newNode, glm::mat4 GlobalT, Node* parent)
 {
-	newNode.globalTransform.modelMatrix() = GlobalT;
-	newNode.localTransform.modelMatrix() = glm::mat4(0);
-	newNode.parent = parent;
-	if (newNode.parent == nullptr)
+	newNode->globalTransform.modelMatrix() = GlobalT;
+	newNode->localTransform.modelMatrix() = glm::mat4(0);
+	newNode->parent = parent;
+	if (newNode->parent == nullptr)
 	{
 		//break
-		newNode.parentIndex = 1;
+		newNode->parentIndex = 1;
 	}
 }

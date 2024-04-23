@@ -185,7 +185,7 @@ int main() {
 	
 	Node chestNode;
 	Node* chestNodePtr = &chestNode;
-	setNodeValues(*chestNodePtr, globalTransform.modelMatrix());
+	setNodeValues(chestNodePtr, globalTransform.modelMatrix());
 	std::cout << (chestNodePtr->parent == nullptr);
 	chestNodePtr->localTransform.scale = glm::vec3(2);
 	nodes.push_back(chestNodePtr);

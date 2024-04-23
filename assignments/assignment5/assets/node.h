@@ -13,4 +13,4 @@ struct Node {
 
 
 void SolveFKRecursive(Node* node);
-void setNodeValues(Node newNode, glm::mat4 GlobalT, Node* parent = nullptr);
+void setNodeValues(Node* newNode, glm::mat4 GlobalT, Node* parent = nullptr);
