@@ -59,7 +59,11 @@ PointLight pointLights[MAX_POINT_LIGHTS];
 
 
 std::vector<Node*> nodes;
-ew::Transform globalTransform;
+//ew::Transform globalTransform;
+
+Node globalNode;
+Node* globalNodePtr;
+Node* headNodePtr;
 
 ew::Transform planeTransform; // There's probably something about this in the mesh, but I couldn't find it
 unsigned int shadowMap;
@@ -72,6 +76,8 @@ float angleTest;
 
 float minBias = 0.005;
 float maxBias = 0.015;
+
+int frameCount = 0;
 
 int main() {
 	GLFWwindow* window = initWindow("Assignment 3", screenWidth, screenHeight);
@@ -181,15 +187,32 @@ int main() {
 
 
 	
-
+	globalNodePtr = &globalNode;
+	globalNodePtr->hasModel = false;
+	setNodeParent(globalNodePtr);
+	nodes.push_back(globalNodePtr);
 	
+	glm::vec3 position, scale;
+	glm::quat rotation;
+	//glm::mat4 m = glm::mat4(1.0f);
+
 	Node chestNode;
 	Node* chestNodePtr = &chestNode;
-	setNodeValues(chestNodePtr, globalTransform.modelMatrix());
-	//std::cout << (chestNodePtr->parent == nullptr);
-	//std::cout << chestNodePtr->localTransform.modelMatrix();
-	chestNodePtr->localTransform.scale = glm::vec3(2);
+	setNodeParent(chestNodePtr, globalNodePtr);
+	position = glm::vec3(5, 2, 0);
+	scale = glm::vec3(2);
+	chestNodePtr->localTransform = glm::translate(chestNodePtr->localTransform, position);
+	chestNodePtr->localTransform = glm::scale(chestNodePtr->localTransform, scale);
 	nodes.push_back(chestNodePtr);
+
+	Node headNode;
+	headNodePtr = &headNode;
+	setNodeParent(headNodePtr, chestNodePtr);
+	headNodePtr->localTransform = glm::translate(headNodePtr->localTransform, glm::vec3(0, 1.5, 0));
+	headNodePtr->localTransform = glm::scale(headNodePtr->localTransform, glm::vec3(0.5));
+
+	nodes.push_back(headNodePtr);
+
 
 
 	//After window initialization...
@@ -199,6 +222,7 @@ int main() {
 	glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
 
 	while (!glfwWindowShouldClose(window)) {
+		frameCount++;
 		glfwPollEvents();
 
 		float time = (float)glfwGetTime();
@@ -505,19 +529,12 @@ GLFWwindow* initWindow(const char* title, int width, int height) {
 
 void updateFKValues()
 {
-	globalTransform.rotation = glm::rotate(globalTransform.rotation, deltaTime, glm::vec3(0.0, 1.0, 0.0));
-	std::cout << globalTransform.rotation.x << ", " << globalTransform.rotation.y << ", " << globalTransform.rotation.z << ", " << std::endl;
-
-
+	globalNode.localTransform= glm::rotate(globalNode.localTransform,-deltaTime/3, glm::vec3(0.0, 1.0, 0.0));
+	float radConvert = 3.13159 / 180;
 	
-	for (auto currentNode : nodes)
-	{
-		setNodeValues(currentNode, globalTransform.modelMatrix(), currentNode->parent);
-		SolveFKRecursive(currentNode);
-		std::cout << currentNode->localTransform.rotation.x << ", " << currentNode->globalTransform.rotation.y << ", " << currentNode->localTransform.rotation.z << ", " << std::endl;
-	}
-	
-
+	headNodePtr->localTransform = glm::translate(headNodePtr->localTransform, glm::vec3(0, sin(frameCount * radConvert * 40)/20, 0));
+	//std::cout << globalNode.localTransform.rotation.x << ", " << globalNode.localTransform.rotation.y << ", " << globalNode.localTransform.rotation.z << ", " << std::endl;
+	SolveFKRecursive(globalNodePtr);
 }
 
 void drawScene(ew::Camera camera, ew::Shader shader, ew::Camera lightCamera, bool shouldDrawPlane)
@@ -567,8 +584,12 @@ void drawScene(ew::Camera camera, ew::Shader shader, ew::Camera lightCamera, boo
 
 	for (Node* currentNode : nodes)
 	{
-		shader.setMat4("_Model", currentNode->globalTransform.modelMatrix());
-		monkeyModel.draw();
+		if (currentNode->hasModel)
+		{
+			shader.setMat4("_Model", currentNode->globalTransform);
+			//std::cout << currentNode->globalTransform.position.x << std::endl;
+			monkeyModel.draw();
+		}
 	}
 	
 
