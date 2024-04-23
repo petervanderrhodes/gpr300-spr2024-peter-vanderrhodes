@@ -186,7 +186,8 @@ int main() {
 	Node chestNode;
 	Node* chestNodePtr = &chestNode;
 	setNodeValues(chestNodePtr, globalTransform.modelMatrix());
-	std::cout << (chestNodePtr->parent == nullptr);
+	//std::cout << (chestNodePtr->parent == nullptr);
+	//std::cout << chestNodePtr->localTransform.modelMatrix();
 	chestNodePtr->localTransform.scale = glm::vec3(2);
 	nodes.push_back(chestNodePtr);
 
@@ -505,15 +506,17 @@ GLFWwindow* initWindow(const char* title, int width, int height) {
 void updateFKValues()
 {
 	globalTransform.rotation = glm::rotate(globalTransform.rotation, deltaTime, glm::vec3(0.0, 1.0, 0.0));
+	std::cout << globalTransform.rotation.x << ", " << globalTransform.rotation.y << ", " << globalTransform.rotation.z << ", " << std::endl;
+
 
 	
 	for (auto currentNode : nodes)
 	{
-		std::cout << currentNode->localTransform.scale.x;
-		std::cout << false;
-		std::cout << (currentNode->parent != nullptr);
+		setNodeValues(currentNode, globalTransform.modelMatrix(), currentNode->parent);
 		SolveFKRecursive(currentNode);
+		std::cout << currentNode->localTransform.rotation.x << ", " << currentNode->globalTransform.rotation.y << ", " << currentNode->localTransform.rotation.z << ", " << std::endl;
 	}
+	
 
 }
 
@@ -564,7 +567,7 @@ void drawScene(ew::Camera camera, ew::Shader shader, ew::Camera lightCamera, boo
 
 	for (Node* currentNode : nodes)
 	{
-		shader.setMat4("_Model", currentNode->localTransform.modelMatrix());
+		shader.setMat4("_Model", currentNode->globalTransform.modelMatrix());
 		monkeyModel.draw();
 	}
 	
