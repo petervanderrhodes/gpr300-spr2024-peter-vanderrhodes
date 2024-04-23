@@ -143,6 +143,7 @@ int main() {
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadowMap, 0);
 
 	//Creating the point lights
+	/*
 	int pointLightDistance = 10;
 	int pointLightOffset = 5;
 	float pointLightRadius = 8.0f;
@@ -163,6 +164,8 @@ int main() {
 			
 		}
 	}
+	*/
+	
 
 
 	planeTransform.position.y = -2; //Moves plane down
@@ -250,7 +253,9 @@ int main() {
 			deferredShader.setFloat("_Material.Shininess", material.Shininess);
 			deferredShader.setInt("_ShadowMap",3);
 
-			for (int i = 0; i < MAX_POINT_LIGHTS; i++)
+			//Setting point light values
+			/*
+				for (int i = 0; i < MAX_POINT_LIGHTS; i++)
 			{
 				std::string prefix = "_PointLights[" + std::to_string(i) + "].";
 				deferredShader.setVec3(prefix + "position", pointLights[i].position);
@@ -258,8 +263,10 @@ int main() {
 				deferredShader.setVec4(prefix + "color", pointLights[i].color);
 
 			}
+			*/
+			
 
-			//TODO: BIND GBUFFER TEXTURES
+			//BIND GBUFFER TEXTURES
 			glBindTextureUnit(0, gBuffer.colorBuffers[0]);
 			glBindTextureUnit(1, gBuffer.colorBuffers[1]);
 			glBindTextureUnit(2, gBuffer.colorBuffers[2]);
@@ -290,7 +297,8 @@ int main() {
 
 		
 		//RENDER LIGHT ORBS
-		{
+		/*
+		* {
 			glBindFramebuffer(GL_READ_FRAMEBUFFER, gBuffer.fbo); //Read from gBuffer 
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer.fbo); //Write to current fbo
 			glBlitFramebuffer(
@@ -312,6 +320,8 @@ int main() {
 			}
 
 		}
+		*/
+		
 
 
 
@@ -386,9 +396,9 @@ void drawUI(ew::Camera* camera, ew::CameraController* cameraController, peter::F
 		usingPostProcess = !usingPostProcess;
 	}
 
-	drawShadowUI();
+	//drawShadowUI();
 
-	drawGBufferUI(gBuffer);
+	//drawGBufferUI(gBuffer);
 
 	//Add more camera settings here!
 
@@ -481,7 +491,7 @@ void drawScene(ew::Camera camera, ew::Shader shader, ew::Camera lightCamera, boo
 	lightCamera.position = lightCamera.target - (lightDirection * cameraDistance);
 	glm::mat4 lightViewProjection = (lightCamera.projectionMatrix() * lightCamera.viewMatrix());
 
-	ew::Mesh planeMesh = ew::Mesh(ew::createPlane(70, 70, 5));
+	ew::Mesh planeMesh = ew::Mesh(ew::createPlane(10, 10, 5));
 
 	shader.use();
 	//transform.modelMatrix() combines translation, rotation, and scale into a 4x4 model matrix
@@ -497,7 +507,8 @@ void drawScene(ew::Camera camera, ew::Shader shader, ew::Camera lightCamera, boo
 	ew::Transform currentTransform;
 	//The monkey array
 	
-	for (int z = -3; z < 4; z++) {
+	/*
+	 for (int z = -3; z < 4; z++) {
 		for (int x = -3; x < 4; x++) {
 			currentTransform.position.x = 10 * x;
 			currentTransform.position.z = 10 * z;
@@ -506,6 +517,8 @@ void drawScene(ew::Camera camera, ew::Shader shader, ew::Camera lightCamera, boo
 			monkeyModel.draw(); //Draws monkey model using current shader
 		}
 	}
+	*/
+	
 
 	
 	
