@@ -7,8 +7,8 @@ struct Node {
 	glm::mat4 globalTransform;
 	Node* parent;
 	std::vector<Node*> children;
-	unsigned int numChildren;
-	unsigned int parentIndex;
+	//unsigned int numChildren;
+	//unsigned int parentIndex;
 	bool hasModel = true;
 };
 

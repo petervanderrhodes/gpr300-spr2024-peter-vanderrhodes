@@ -21,6 +21,7 @@
 
 #include "assets/node.h"
 #include <iostream>
+#include <math.h>
 
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
@@ -29,6 +30,7 @@ void drawUI(ew::Camera* camera, ew::CameraController* cameraController, peter::F
 void drawShadowUI();
 void drawGBufferUI(peter::Framebuffer gBuffer);
 void drawScene(ew::Camera camera, ew::Shader shader, ew::Camera lightCamera, bool shouldDrawPlane = true);
+void updateFKValues();
 
 //Global state
 int screenWidth = 1080;
@@ -64,6 +66,10 @@ std::vector<Node*> nodes;
 Node globalNode;
 Node* globalNodePtr;
 Node* headNodePtr;
+Node* shoulderRNodePtr;
+Node* shoulderLNodePtr;
+Node* handRNodePtr;
+Node* handLNodePtr;
 
 ew::Transform planeTransform; // There's probably something about this in the mesh, but I couldn't find it
 unsigned int shadowMap;
@@ -78,6 +84,8 @@ float minBias = 0.005;
 float maxBias = 0.015;
 
 int frameCount = 0;
+
+const float PI = acos(-1);
 
 int main() {
 	GLFWwindow* window = initWindow("Assignment 3", screenWidth, screenHeight);
@@ -210,8 +218,53 @@ int main() {
 	setNodeParent(headNodePtr, chestNodePtr);
 	headNodePtr->localTransform = glm::translate(headNodePtr->localTransform, glm::vec3(0, 1.5, 0));
 	headNodePtr->localTransform = glm::scale(headNodePtr->localTransform, glm::vec3(0.5));
-
 	nodes.push_back(headNodePtr);
+
+	Node shoulderRNode;
+	shoulderRNodePtr = &shoulderRNode;
+	setNodeParent(shoulderRNodePtr, chestNodePtr);
+	shoulderRNodePtr->localTransform = glm::translate(shoulderRNodePtr->localTransform, glm::vec3(1, 0, 0));
+	shoulderRNodePtr->localTransform = glm::rotate(shoulderRNodePtr->localTransform, PI/2, glm::vec3(0.0, 1.0, 0.0));
+	shoulderRNodePtr->localTransform = glm::scale(shoulderRNodePtr->localTransform, glm::vec3(0.5));
+	nodes.push_back(shoulderRNodePtr);
+
+	Node shoulderLNode;
+	shoulderLNodePtr = &shoulderLNode;
+	setNodeParent(shoulderLNodePtr, chestNodePtr);
+	shoulderLNodePtr->localTransform = glm::translate(shoulderLNodePtr->localTransform, glm::vec3(-1, 0, 0));
+	shoulderLNodePtr->localTransform = glm::rotate(shoulderLNodePtr->localTransform, -PI / 2, glm::vec3(0.0, 1.0, 0.0));
+	shoulderLNodePtr->localTransform = glm::scale(shoulderLNodePtr->localTransform, glm::vec3(0.5));
+	nodes.push_back(shoulderLNodePtr);
+
+	Node armRNode;
+	Node* armRNodePtr = &armRNode;
+	setNodeParent(armRNodePtr, shoulderRNodePtr);
+	armRNodePtr->localTransform = glm::translate(armRNodePtr->localTransform, glm::vec3(0, 0, 2));
+	armRNodePtr->localTransform = glm::scale(armRNodePtr->localTransform, glm::vec3(0.75));
+	nodes.push_back(armRNodePtr);
+
+	Node armLNode;
+	Node* armLNodePtr = &armLNode;
+	setNodeParent(armLNodePtr, shoulderLNodePtr);
+	armLNodePtr->localTransform = glm::translate(armLNodePtr->localTransform, glm::vec3(0, 0, 2));
+	armLNodePtr->localTransform = glm::scale(armLNodePtr->localTransform, glm::vec3(0.75));
+	nodes.push_back(armLNodePtr);
+
+	Node handRNode;
+	handRNodePtr = &handRNode;
+	setNodeParent(handRNodePtr, armRNodePtr);
+	handRNodePtr->localTransform = glm::translate(handRNodePtr->localTransform, glm::vec3(0, 3, 0));
+	handRNodePtr->localTransform = glm::scale(handRNodePtr->localTransform, glm::vec3(0.75));
+	nodes.push_back(handRNodePtr);
+
+	Node handLNode;
+	handLNodePtr = &handLNode;
+	setNodeParent(handLNodePtr, armLNodePtr);
+	handLNodePtr->localTransform = glm::translate(handLNodePtr->localTransform, glm::vec3(0, 3, 0));
+	handLNodePtr->localTransform = glm::scale(handLNodePtr->localTransform, glm::vec3(0.75));
+	nodes.push_back(handLNodePtr);
+
+
 
 
 
@@ -233,6 +286,7 @@ int main() {
 
 		//UPDATE
 
+		updateFKValues();
 		cameraController.move(window, &camera, deltaTime);
 
 		//SHADOW PASS 
@@ -262,9 +316,11 @@ int main() {
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, brickTexture);
 
+			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+
 			glBindFramebuffer(GL_FRAMEBUFFER, gBuffer.fbo);
 			glViewport(0, 0, gBuffer.width, gBuffer.height);
-			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+			
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 			drawScene(camera, gBufferShader, lightCamera);
@@ -529,11 +585,14 @@ GLFWwindow* initWindow(const char* title, int width, int height) {
 
 void updateFKValues()
 {
-	globalNode.localTransform= glm::rotate(globalNode.localTransform,-deltaTime/3, glm::vec3(0.0, 1.0, 0.0));
-	float radConvert = 3.13159 / 180;
+	globalNode.localTransform= glm::rotate(globalNode.localTransform,-deltaTime, glm::vec3(0.0, 1.0, 0.0));
+	float radConvert = PI / 180;
 	
-	headNodePtr->localTransform = glm::translate(headNodePtr->localTransform, glm::vec3(0, sin(frameCount * radConvert * 40)/20, 0));
-	//std::cout << globalNode.localTransform.rotation.x << ", " << globalNode.localTransform.rotation.y << ", " << globalNode.localTransform.rotation.z << ", " << std::endl;
+	headNodePtr->localTransform = glm::translate(headNodePtr->localTransform, glm::vec3(0, sin(frameCount * radConvert * 40)/10, 0));
+	shoulderRNodePtr->localTransform = glm::rotate(shoulderRNodePtr->localTransform, 1.5f * deltaTime, glm::vec3(0, 0, 1));
+	shoulderLNodePtr->localTransform = glm::rotate(shoulderLNodePtr->localTransform, 1.5f * deltaTime, glm::vec3(0, 0, 1));
+	handRNodePtr->localTransform = glm::rotate(handRNodePtr->localTransform, 2.0f * deltaTime, glm::vec3(0, 1, 0));
+	handLNodePtr->localTransform = glm::rotate(handLNodePtr->localTransform, 2.0f * deltaTime, glm::vec3(0, 1, 0));
 	SolveFKRecursive(globalNodePtr);
 }
 
@@ -580,7 +639,7 @@ void drawScene(ew::Camera camera, ew::Shader shader, ew::Camera lightCamera, boo
 
 	//FK drawing
 
-	updateFKValues();
+	
 
 	for (Node* currentNode : nodes)
 	{
