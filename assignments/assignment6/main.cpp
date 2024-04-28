@@ -88,8 +88,6 @@ int main() {
 	
 
 	GLuint brickTexture = ew::loadTexture("assets/brick_color.jpg");
-
-	//Plane
 	
 
 	ew::CameraController cameraController;
@@ -123,8 +121,8 @@ int main() {
 		printf("Framebuffer incomplete: %d", fboStatus);
 	}
 
-	unsigned int dummyVAO;
-	glCreateVertexArrays(1, &dummyVAO);
+	//unsigned int dummyVAO;
+	//glCreateVertexArrays(1, &dummyVAO);
 
 	//Create shadowmap
 	// TODO? Maybe add this to a file in peterlib
@@ -293,10 +291,10 @@ int main() {
 			//glBindTexture(GL_TEXTURE_2D, shadowMap);
 			
 			
+			bloomRenderer.configureQuad();
 			
-			
-			glBindVertexArray(dummyVAO);
-			glDrawArrays(GL_TRIANGLES, 0, 3);
+			//glBindVertexArray(dummyVAO);
+			//glDrawArrays(GL_TRIANGLES, 0, 3);
 		}
 
 
@@ -346,14 +344,13 @@ int main() {
 			if (usingBloom)
 			{
 				
-				bloomRenderer.RenderBloomTexture(framebuffer.colorBuffers[1], bloomRadius, dummyVAO);
-				//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-				normalShader.use();
+				bloomRenderer.RenderBloomTexture(framebuffer.colorBuffers[1], bloomRadius);
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+				bloomShader.use();
 				glBindTextureUnit(0, framebuffer.colorBuffers[0]);
-				glActiveTexture(GL_TEXTURE1);
-				glBindTexture(GL_TEXTURE_2D, bloomRenderer.BloomTexture());
-				//bloomShader.setFloat("exposure", exposure);
-				//bloomRenderer.configureQuad();
+				glBindTextureUnit(1, bloomRenderer.BloomTexture());
+				bloomShader.setFloat("exposure", exposure);
+				bloomRenderer.configureQuad();
 			}
 			else {
 				if (usingPostProcess) {
@@ -363,14 +360,15 @@ int main() {
 					normalShader.use();
 				}
 				glBindTextureUnit(0, framebuffer.colorBuffers[0]);
+				//glBindVertexArray(dummyVAO);
+				glDrawArrays(GL_TRIANGLES, 0, 3);
 			}
 
 
 
 			
 			
-			glBindVertexArray(dummyVAO);
-			glDrawArrays(GL_TRIANGLES, 0, 3);
+			
 		}
 		
 

@@ -54,12 +54,12 @@ void BloomRenderer::Destroy()
     mInit = false;
 }
 
-void BloomRenderer::RenderBloomTexture(unsigned int srcTexture, float filterRadius, unsigned int dummyVAO)
+void BloomRenderer::RenderBloomTexture(unsigned int srcTexture, float filterRadius)
 {
     mFBO.BindForWriting();
 
-    this->RenderDownsamples(srcTexture, dummyVAO);
-    this->RenderUpsamples(filterRadius, dummyVAO);
+    this->RenderDownsamples(srcTexture);
+    this->RenderUpsamples(filterRadius);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     // Restore viewport
@@ -71,7 +71,7 @@ GLuint BloomRenderer::BloomTexture()
     return mFBO.MipChain()[0].texture;
 }
 
-void BloomRenderer::RenderDownsamples(unsigned int srcTexture, unsigned int dummyVAO)
+void BloomRenderer::RenderDownsamples(unsigned int srcTexture)
 {
     const std::vector<bloomMip>& mipChain = mFBO.MipChain();
 
@@ -91,9 +91,7 @@ void BloomRenderer::RenderDownsamples(unsigned int srcTexture, unsigned int dumm
             GL_TEXTURE_2D, mip.texture, 0);
 
         // Render screen-filled quad of resolution of current mip
-        glBindVertexArray(dummyVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
-        glBindVertexArray(0);
+        configureQuad();
 
         // Set current mip resolution as srcResolution for next iteration
         mDownsampleShader->setVec2("srcResolution", mip.size);
@@ -104,7 +102,7 @@ void BloomRenderer::RenderDownsamples(unsigned int srcTexture, unsigned int dumm
     //mDownsampleShader->Deactivate();
 }
 
-void BloomRenderer::RenderUpsamples(float filterRadius, unsigned int dummyVAO)
+void BloomRenderer::RenderUpsamples(float filterRadius)
 {
     const std::vector<bloomMip>& mipChain = mFBO.MipChain();
 
@@ -131,9 +129,7 @@ void BloomRenderer::RenderUpsamples(float filterRadius, unsigned int dummyVAO)
             GL_TEXTURE_2D, nextMip.texture, 0);
 
         // Render screen-filled quad of resolution of current mip
-        glBindVertexArray(dummyVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
-        glBindVertexArray(0);
+        configureQuad();
     }
 
     // Disable additive blending
@@ -143,23 +139,30 @@ void BloomRenderer::RenderUpsamples(float filterRadius, unsigned int dummyVAO)
     //mUpsampleShader->Deactivate();
 }
 
-/*
 void BloomRenderer::configureQuad() {
-    glGenVertexArrays(1, &quadVAO);
-    glGenBuffers(1, &quadVBO);
-
-    glBindVertexArray(quadVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
-
-    // position attribute
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-
-    // texture coordinate
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
-        (void*)(2 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-    glBindVertexArray(0);
+    {
+        if (quadVAO == 0)
+        {
+            float quadVertices[] = {
+                // positions        // texture Coords
+                -1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
+                -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+                 1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
+                 1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+            };
+            // setup plane VAO
+            glGenVertexArrays(1, &quadVAO);
+            glGenBuffers(1, &quadVBO);
+            glBindVertexArray(quadVAO);
+            glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+            glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+            glEnableVertexAttribArray(0);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+            glEnableVertexAttribArray(1);
+            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+        }
+        glBindVertexArray(quadVAO);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        glBindVertexArray(0);
+    }
 }
-*/

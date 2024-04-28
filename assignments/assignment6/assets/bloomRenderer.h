@@ -13,18 +13,18 @@ public:
     ~BloomRenderer();
     bool Init(unsigned int windowWidth, unsigned int windowHeight);
     void Destroy();
-    void RenderBloomTexture(unsigned int srcTexture, float filterRadius, unsigned int dummyVAO);
+    void RenderBloomTexture(unsigned int srcTexture, float filterRadius);
     unsigned int BloomTexture();
-    //void configureQuad();
+    void configureQuad();
 
     
 
 private:
-    void RenderDownsamples(unsigned int srcTexture, unsigned int dummyVAO);
-    void RenderUpsamples(float filterRadius, unsigned int dummyVAO);
+    void RenderDownsamples(unsigned int srcTexture);
+    void RenderUpsamples(float filterRadius);
 
     
-    //unsigned int quadVBO, quadVAO;
+    unsigned int quadVBO, quadVAO;
 
     bool mInit;
     bloomFBO mFBO;
