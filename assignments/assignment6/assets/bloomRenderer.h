@@ -1,6 +1,11 @@
 #include "bloomBuffer.h"
 #include <ew/shader.h>
 
+
+
+
+
+
 class BloomRenderer
 {
 public:
@@ -8,12 +13,18 @@ public:
     ~BloomRenderer();
     bool Init(unsigned int windowWidth, unsigned int windowHeight);
     void Destroy();
-    void RenderBloomTexture(unsigned int srcTexture, float filterRadius);
+    void RenderBloomTexture(unsigned int srcTexture, float filterRadius, unsigned int dummyVAO);
     unsigned int BloomTexture();
+    //void configureQuad();
+
+    
 
 private:
-    void RenderDownsamples(unsigned int srcTexture);
-    void RenderUpsamples(float filterRadius);
+    void RenderDownsamples(unsigned int srcTexture, unsigned int dummyVAO);
+    void RenderUpsamples(float filterRadius, unsigned int dummyVAO);
+
+    
+    //unsigned int quadVBO, quadVAO;
 
     bool mInit;
     bloomFBO mFBO;

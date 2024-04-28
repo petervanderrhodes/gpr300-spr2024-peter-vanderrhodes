@@ -19,12 +19,15 @@
 
 #include <ew/procGen.h>
 
+#include "assets/bloomRenderer.h"
+
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
 GLFWwindow* initWindow(const char* title, int width, int height);
-void drawUI(ew::Camera* camera, ew::CameraController* cameraController, peter::Framebuffer gBuffer);
+void drawUI(ew::Camera* camera, ew::CameraController* cameraController, peter::Framebuffer gBuffer, peter::Framebuffer frameBuffer);
 void drawShadowUI();
 void drawGBufferUI(peter::Framebuffer gBuffer);
+void drawBufferUI(peter::Framebuffer framebuffer);
 void drawScene(ew::Camera camera, ew::Shader shader, ew::Camera lightCamera, bool shouldDrawPlane = true);
 
 //Global state
@@ -59,6 +62,7 @@ ew::Transform planeTransform; // There's probably something about this in the me
 unsigned int shadowMap;
 
 bool usingPostProcess = false;
+bool usingBloom = true;
 
 glm::vec3 lightDirection = glm::vec3(0, -1, 0);
 float cameraDistance = 20;
@@ -66,6 +70,9 @@ float angleTest;
 
 float minBias = 0.005;
 float maxBias = 0.015;
+
+float bloomRadius = 0.005f;
+float exposure = 1.0f;
 
 int main() {
 	GLFWwindow* window = initWindow("Assignment 6", screenWidth, screenHeight);
@@ -77,12 +84,13 @@ int main() {
 	ew::Shader gBufferShader = ew::Shader("assets/lit.vert", "assets/geometryPass.frag");
 	ew::Shader deferredShader = ew::Shader("assets/fsTriangle.vert", "assets/deferredLit.frag");
 	ew::Shader lightOrbShader = ew::Shader("assets/lightOrb.vert", "assets/lightOrb.frag");
+	ew::Shader bloomShader = ew::Shader("assets/bloomSampling.vert", "assets/bloomSampling.frag");
 	
+
 	GLuint brickTexture = ew::loadTexture("assets/brick_color.jpg");
 
 	//Plane
 	
-
 
 	ew::CameraController cameraController;
 
@@ -158,7 +166,7 @@ int main() {
 			float pointLightG = rand() % 256;
 			float pointLightB = rand() % 256;
 			glm::vec4 pointLightColor = glm::vec4(pointLightR, pointLightG, pointLightB, 255);
-			pointLightColor /= 256;
+			pointLightColor /= 32;
 			pointLights[i].color = pointLightColor;
 			
 		}
@@ -166,6 +174,17 @@ int main() {
 
 
 	planeTransform.position.y = -2; //Moves plane down
+
+
+	//Bloom Renderer
+	
+
+	bloomShader.use();
+	bloomShader.setInt("scene", 0);
+	bloomShader.setInt("bloomBlur", 1);
+
+	BloomRenderer bloomRenderer;
+	bloomRenderer.Init(screenWidth, screenHeight);
 
 	//After window initialization...
 	glEnable(GL_CULL_FACE);
@@ -324,31 +343,48 @@ int main() {
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
-			if (usingPostProcess) {
-				postProcessShader.use();
+			if (usingBloom)
+			{
+				
+				bloomRenderer.RenderBloomTexture(framebuffer.colorBuffers[1], bloomRadius, dummyVAO);
+				//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+				normalShader.use();
+				glBindTextureUnit(0, framebuffer.colorBuffers[0]);
+				glActiveTexture(GL_TEXTURE1);
+				glBindTexture(GL_TEXTURE_2D, bloomRenderer.BloomTexture());
+				//bloomShader.setFloat("exposure", exposure);
+				//bloomRenderer.configureQuad();
 			}
 			else {
-				normalShader.use();
+				if (usingPostProcess) {
+					postProcessShader.use();
+				}
+				else {
+					normalShader.use();
+				}
+				glBindTextureUnit(0, framebuffer.colorBuffers[0]);
 			}
 
 
 
-			glBindTextureUnit(0, framebuffer.colorBuffers[0]);
+			
+			
 			glBindVertexArray(dummyVAO);
 			glDrawArrays(GL_TRIANGLES, 0, 3);
 		}
 		
 
-		drawUI(&camera, &cameraController, gBuffer);
+		drawUI(&camera, &cameraController, gBuffer, framebuffer);
 		
 
 
 		glfwSwapBuffers(window);
 	}
+	bloomRenderer.Destroy();
 	printf("Shutting down...");
 }
 
-void drawUI(ew::Camera* camera, ew::CameraController* cameraController, peter::Framebuffer gBuffer) {
+void drawUI(ew::Camera* camera, ew::CameraController* cameraController, peter::Framebuffer gBuffer, peter::Framebuffer frameBuffer) {
 	ImGui_ImplGlfw_NewFrame();
 	ImGui_ImplOpenGL3_NewFrame();
 	ImGui::NewFrame();
@@ -386,9 +422,20 @@ void drawUI(ew::Camera* camera, ew::CameraController* cameraController, peter::F
 		usingPostProcess = !usingPostProcess;
 	}
 
+	if (ImGui::CollapsingHeader("Bloom"))
+	{
+		if (ImGui::Button("Toggle bloom")) {
+			usingBloom = !usingBloom;
+		}
+		ImGui::SliderFloat("Bloom Radius", &bloomRadius, 0.001f, 0.1f);
+	}
+
+	
+
 	//drawShadowUI();
 
 	//drawGBufferUI(gBuffer);
+	drawBufferUI(frameBuffer);
 
 	//Add more camera settings here!
 
@@ -427,6 +474,17 @@ void drawGBufferUI(peter::Framebuffer gBuffer)
 		}
 		ImGui::End();
 
+}
+
+void drawBufferUI(peter::Framebuffer framebuffer)
+{
+	ImGui::Begin("Frame buffers");
+	ImVec2 texSize = ImVec2(framebuffer.width / 4, framebuffer.height / 4);
+	for (size_t i = 0; i < 2; i++)
+	{
+		ImGui::Image((ImTextureID)framebuffer.colorBuffers[i], texSize, ImVec2(0, 1), ImVec2(1, 0));
+	}
+	ImGui::End();
 }
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height)

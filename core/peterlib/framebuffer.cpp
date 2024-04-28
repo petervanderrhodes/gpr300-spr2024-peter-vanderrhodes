@@ -18,6 +18,17 @@ peter::Framebuffer peter::createFramebuffer(unsigned int width, unsigned int hei
 	//Attach color buffer to framebuffer
 	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, framebuffer.colorBuffers[0], 0);
 
+	glGenTextures(1, &framebuffer.colorBuffers[1]);
+	glBindTexture(GL_TEXTURE_2D, framebuffer.colorBuffers[1]);
+	glTexStorage2D(GL_TEXTURE_2D, 1, colorFormat, framebuffer.width, framebuffer.height);
+	//Attach color buffer to framebuffer
+	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, framebuffer.colorBuffers[1], 0);
+
+	const GLenum drawBuffers[2] = {
+			GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1,
+	};
+	glDrawBuffers(2, drawBuffers);
+
 	//Create depth buffer
 	glGenTextures(1, &framebuffer.depthBuffer);
 	glBindTexture(GL_TEXTURE_2D, framebuffer.depthBuffer);
@@ -26,6 +37,10 @@ peter::Framebuffer peter::createFramebuffer(unsigned int width, unsigned int hei
 	//Attach depth buffer to framebuffer (assuming FBO is bound)
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, framebuffer.depthBuffer, 0);
 	
+	GLenum fboStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	if (fboStatus != GL_FRAMEBUFFER_COMPLETE) {
+		printf("Framebuffer incomplete: %d", fboStatus);
+	}
 
 	return framebuffer;
 }
