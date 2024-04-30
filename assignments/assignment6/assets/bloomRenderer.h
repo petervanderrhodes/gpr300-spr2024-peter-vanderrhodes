@@ -24,7 +24,7 @@ private:
     void RenderUpsamples(float filterRadius);
 
     
-    unsigned int quadVBO, quadVAO;
+    unsigned int quadVBO, quadVAO = 0;
 
     bool mInit;
     bloomFBO mFBO;

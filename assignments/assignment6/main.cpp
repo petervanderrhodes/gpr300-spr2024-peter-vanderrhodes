@@ -31,8 +31,8 @@ void drawBufferUI(peter::Framebuffer framebuffer);
 void drawScene(ew::Camera camera, ew::Shader shader, ew::Camera lightCamera, bool shouldDrawPlane = true);
 
 //Global state
-int screenWidth = 1080;
-int screenHeight = 720;
+int screenWidth = 1080 * 2;
+int screenHeight = 720 * 2;
 float prevFrameTime;
 float deltaTime;
 
@@ -73,6 +73,7 @@ float maxBias = 0.015;
 
 float bloomRadius = 0.005f;
 float exposure = 1.0f;
+float bloomStrength = 0.04f;
 
 int main() {
 	GLFWwindow* window = initWindow("Assignment 6", screenWidth, screenHeight);
@@ -350,6 +351,7 @@ int main() {
 				glBindTextureUnit(0, framebuffer.colorBuffers[0]);
 				glBindTextureUnit(1, bloomRenderer.BloomTexture());
 				bloomShader.setFloat("exposure", exposure);
+				bloomShader.setFloat("bloomStrength", bloomStrength);
 				bloomRenderer.configureQuad();
 			}
 			else {
@@ -426,6 +428,7 @@ void drawUI(ew::Camera* camera, ew::CameraController* cameraController, peter::F
 			usingBloom = !usingBloom;
 		}
 		ImGui::SliderFloat("Bloom Radius", &bloomRadius, 0.001f, 0.1f);
+		ImGui::SliderFloat("Bloom Strength", &bloomStrength, 0.001f, 1.0f);
 	}
 
 	
