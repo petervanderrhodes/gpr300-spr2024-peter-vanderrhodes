@@ -56,13 +56,14 @@ struct PointLight {
 };
 const int MAX_POINT_LIGHTS = 64;
 PointLight pointLights[MAX_POINT_LIGHTS];
+float pointLightIntensity = 8.0f;
 
 
 ew::Transform planeTransform; // There's probably something about this in the mesh, but I couldn't find it
 unsigned int shadowMap;
 
 bool usingPostProcess = false;
-bool usingBloom = true;
+bool usingBloom = false;
 
 glm::vec3 lightDirection = glm::vec3(0, -1, 0);
 float cameraDistance = 20;
@@ -126,7 +127,7 @@ int main() {
 	//glCreateVertexArrays(1, &dummyVAO);
 
 	//Create shadowmap
-	// TODO? Maybe add this to a file in peterlib
+	// TOMAYBEDO? Maybe add this to a file in peterlib
 	
 	unsigned int shadowFBO;
 	glCreateFramebuffers(1, &shadowFBO);
@@ -165,7 +166,7 @@ int main() {
 			float pointLightG = rand() % 256;
 			float pointLightB = rand() % 256;
 			glm::vec4 pointLightColor = glm::vec4(pointLightR, pointLightG, pointLightB, 255);
-			pointLightColor /= 32;
+			pointLightColor /= 256;
 			pointLights[i].color = pointLightColor;
 			
 		}
@@ -252,7 +253,7 @@ int main() {
 			glm::mat4 lightViewProjection = (lightCamera.projectionMatrix() * lightCamera.viewMatrix());
 
 			deferredShader.use();
-			//TODO: SET ALL LIGHTING UNIFORMS
+			//SET ALL LIGHTING UNIFORMS
 
 			deferredShader.setVec3("_EyePos", camera.position);
 
@@ -273,11 +274,11 @@ int main() {
 				std::string prefix = "_PointLights[" + std::to_string(i) + "].";
 				deferredShader.setVec3(prefix + "position", pointLights[i].position);
 				deferredShader.setFloat(prefix + "radius", pointLights[i].radius);
-				deferredShader.setVec4(prefix + "color", pointLights[i].color);
+				deferredShader.setVec4(prefix + "color", glm::vec4((pointLights[i].color.r * pointLightIntensity), (pointLights[i].color.g * pointLightIntensity), (pointLights[i].color.b * pointLightIntensity), pointLights[i].color.a));
 
 			}
 
-			//TODO: BIND GBUFFER TEXTURES
+			//BIND GBUFFER TEXTURES
 			glBindTextureUnit(0, gBuffer.colorBuffers[0]);
 			glBindTextureUnit(1, gBuffer.colorBuffers[1]);
 			glBindTextureUnit(2, gBuffer.colorBuffers[2]);
@@ -413,6 +414,8 @@ void drawUI(ew::Camera* camera, ew::CameraController* cameraController, peter::F
 		ImGui::SliderAngle("Angle Test", &angleTest, 0.0f, 360.0f); //Was trying to convert the light into angles, but this seems fruitless.
 	}
 
+	ImGui::SliderFloat("Point Light Intensity", &pointLightIntensity, 1.0f, 256.0f);
+
 	if (ImGui::CollapsingHeader("Shadow Biases")) {
 		ImGui::SliderFloat("Min Bias", &minBias, 0.0f, maxBias);
 		ImGui::SliderFloat("Max Bias", &maxBias, minBias, 0.1f);
@@ -429,6 +432,7 @@ void drawUI(ew::Camera* camera, ew::CameraController* cameraController, peter::F
 		}
 		ImGui::SliderFloat("Bloom Radius", &bloomRadius, 0.001f, 0.1f);
 		ImGui::SliderFloat("Bloom Strength", &bloomStrength, 0.001f, 1.0f);
+		ImGui::SliderFloat("Exposure", &exposure, 0.001f, 5.0f);
 	}
 
 	
@@ -436,7 +440,7 @@ void drawUI(ew::Camera* camera, ew::CameraController* cameraController, peter::F
 	//drawShadowUI();
 
 	//drawGBufferUI(gBuffer);
-	drawBufferUI(frameBuffer);
+	//drawBufferUI(frameBuffer);
 
 	//Add more camera settings here!
 
